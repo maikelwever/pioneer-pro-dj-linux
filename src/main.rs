@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate clap;
+
 mod rekordbox;
 mod utils;
 mod component;
@@ -8,7 +11,12 @@ use component::App;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut app = App::new("/home/jonas/Music/TermDJ");
+    let matches = clap_app!(myapp => 
+        (@arg LIBRARY_PATH: +required "Path to music library to serve")
+    ).get_matches();
+
+    let library_path = matches.value_of("LIBRARY_PATH").unwrap();
+    let mut app = App::new(library_path);
     app.run().await;
 
     Ok(())
