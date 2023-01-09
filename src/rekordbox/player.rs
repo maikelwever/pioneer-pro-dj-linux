@@ -6,11 +6,24 @@ pub struct Player {
     model: String,
     address: Ipv4Addr,
     number: u8,
+    linking: bool,
 }
 
 impl Player {
     pub fn new(model: String, number: u8, address: Ipv4Addr) -> Self {
-        Self { model: model, number: number, address: address }
+        Self { model: model, number: number, address: address, linking: false }
+    }
+
+    pub fn address(&self) -> Ipv4Addr {
+        self.address
+    }
+
+    pub fn is_linking(&self) -> bool {
+        self.linking
+    }
+
+    pub fn set_linking(&mut self, val: bool) {
+        self.linking = val;
     }
 }
 
@@ -52,6 +65,12 @@ impl PlayerCollection {
         match self.get_mut(&player.address) {
             Some(mut p) => {
                 p.number = player.number;
+
+                // Resetting of this state should be handled by some timer
+                // TODO: Implement unresponsive player checker
+                if p.linking == false && player.linking == true {
+                    p.linking = player.linking;
+                }
             },
             None => {
                 self.push(player);
@@ -89,13 +108,14 @@ impl Index<usize> for PlayerCollection {
 
 #[cfg(test)]
 mod tests {
-    use crate::player::{PlayerCollection, Player};
-    use std::net::Ipv4Addr;
+    use super::*;
+    use std::net::{Ipv4Addr};
 
     #[test]
     fn it_support_pushing() {
         let mut players = PlayerCollection::new();
         players.push(Player {
+            linking: false,
             number: 0x01,
             address: Ipv4Addr::new(0x01, 0x00, 0x00, 0x01),
             model: String::from("XDJ-700")
@@ -108,6 +128,7 @@ mod tests {
     fn it_can_update_matching_players() {
         let mut players = PlayerCollection::new();
         players.push(Player {
+            linking: false,
             number: 0x01,
             address: Ipv4Addr::new(0x01, 0x00, 0x00, 0x01),
             model: String::from("XDJ-700")
@@ -115,6 +136,7 @@ mod tests {
         assert_eq!(players[0].number, 0x01);
 
         players.add_or_update(Player {
+            linking: false,
             number: 0x02,
             address: Ipv4Addr::new(0x01, 0x00, 0x00, 0x01),
             model: String::from("XDJ-700")
@@ -123,6 +145,16 @@ mod tests {
         assert_eq!(players[0].number, 0x02);
 
         players.add_or_update(Player {
+            linking: true,
+            number: 0x02,
+            address: Ipv4Addr::new(0x01, 0x00, 0x00, 0x01),
+            model: String::from("XDJ-700")
+        });
+        assert_eq!(players.len(), 1);
+        assert_eq!(players[0].linking, true);
+
+        players.add_or_update(Player {
+            linking: false,
             number: 0x03,
             address: Ipv4Addr::new(0x01, 0x00, 0x00, 0x05),
             model: String::from("XDJ-700")
@@ -132,4 +164,3 @@ mod tests {
         assert_eq!(players[1].number, 0x03);
     }
 }
-
